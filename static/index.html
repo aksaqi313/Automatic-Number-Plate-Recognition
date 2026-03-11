@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Automatic Number Plate Recognition (ANPR)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050816;
+      --panel: #111827;
+      --accent: #22c55e;
+      --accent-soft: rgba(34, 197, 94, 0.2);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --error: #f97373;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #1f2937 0, var(--bg) 40%);
+      min-height: 100vh;
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1120px;
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.15), transparent);
+      border-radius: 24px;
+      padding: 24px 28px 28px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow:
+        0 30px 60px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(18px);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .title p {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.1fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.08), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.06), transparent 55%),
+                  var(--panel);
+      border-radius: 18px;
+      padding: 16px 16px 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 32px rgba(15, 23, 42, 0.85);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .tabs {
+      display: inline-flex;
+      background: #020617;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+      gap: 4px;
+    }
+
+    .tab {
+      border-radius: 999px;
+      font-size: 0.8rem;
+      padding: 5px 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #22c55e, #4ade80);
+      color: #020617;
+      font-weight: 500;
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.7), 0 10px 18px rgba(34, 197, 94, 0.5);
+    }
+
+    .tab-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.85);
+    }
+
+    .upload-area {
+      border-radius: 14px;
+      border: 1px dashed rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.95));
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.08s ease;
+    }
+
+    .upload-area:hover {
+      border-color: rgba(34, 197, 94, 0.6);
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.5), 0 16px 28px rgba(15, 23, 42, 0.95);
+      transform: translateY(-1px);
+    }
+
+    .upload-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .upload-subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .upload-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .chip {
+      padding: 4px 9px;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(30, 64, 175, 0.8);
+      color: var(--muted);
+    }
+
+    .chip-accent {
+      border-color: rgba(34, 197, 94, 0.8);
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e, #4ade80);
+      color: #020617;
+      box-shadow: 0 14px 26px rgba(34, 197, 94, 0.55);
+      font-weight: 500;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 18px 32px rgba(34, 197, 94, 0.65);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 8px 18px rgba(34, 197, 94, 0.6);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .status strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .status.error {
+      color: var(--error);
+    }
+
+    .preview {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #020617;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 340px;
+      position: relative;
+    }
+
+    .preview img,
+    .preview video {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+
+    .preview-placeholder {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .preview-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+    }
+
+    .preview-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+    }
+
+    .results {
+      padding-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.82rem;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      color: var(--muted);
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .plate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .plate-item {
+      border-radius: 10px;
+      padding: 7px 9px;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .plate-text {
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    .plate-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    .tiny-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .kv-row strong {
+      color: var(--text);
+    }
+
+    .code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.78rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #020617;
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      color: var(--muted);
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Automatic Number Plate Recognition</h1>
+        <p>FastAPI backend · OpenCV processing · Demo OCR</p>
+      </div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span id="health-text">Server status: Ready</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Input</div>
+            <div class="card-subtitle">Upload an image or short video clip</div>
+          </div>
+          <div class="tabs" id="mode-tabs">
+            <button class="tab active" data-mode="image">
+              <span class="tab-indicator"></span>
+              Image
+            </button>
+            <button class="tab" data-mode="video">
+              <span class="tab-indicator"></span>
+              Video
+            </button>
+          </div>
+        </div>
+
+        <label class="upload-area" id="upload-area">
+          <input id="file-input" class="file-input" type="file" />
+          <div class="upload-title" id="upload-title">Click to choose a file</div>
+          <div class="upload-subtitle" id="upload-subtitle">
+            Supported image formats: JPG, PNG, WEBP. For best results, use clear, front-facing plates.
+          </div>
+          <div class="upload-chip-row">
+            <div class="chip chip-accent">Live demo (no external ML models)</div>
+            <div class="chip">Runs on your machine</div>
+          </div>
+        </label>
+
+        <div class="actions">
+          <div class="status" id="status-text">
+            Idle. Select a file to get started.
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost" id="clear-btn" type="button">Clear</button>
+            <button class="btn btn-primary" id="run-btn" type="button">
+              <span>Run detection</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Output</div>
+            <div class="card-subtitle">Annotated frame · Recognized plate texts</div>
+          </div>
+        </div>
+
+        <div class="preview" id="preview">
+          <div class="preview-placeholder">
+            Annotated image or video will appear here after detection.
+          </div>
+        </div>
+
+        <div class="results">
+          <div class="results-header">
+            <div class="tiny-label">Summary</div>
+            <div class="pill">
+              <span class="pill-dot"></span>
+              <span id="summary-count">0 plates</span>
+            </div>
+          </div>
+
+          <div class="plate-list" id="plate-list">
+            <!-- Filled by JS -->
+          </div>
+
+          <div>
+            <div class="tiny-label">Raw response</div>
+            <div class="code" id="raw-response">
+              Awaiting request…
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("file-input");
+    const uploadArea = document.getElementById("upload-area");
+    const uploadTitle = document.getElementById("upload-title");
+    const uploadSubtitle = document.getElementById("upload-subtitle");
+    const statusText = document.getElementById("status-text");
+    const runBtn = document.getElementById("run-btn");
+    const clearBtn = document.getElementById("clear-btn");
+    const preview = document.getElementById("preview");
+    const plateList = document.getElementById("plate-list");
+    const summaryCount = document.getElementById("summary-count");
+    const rawResponse = document.getElementById("raw-response");
+    const modeTabs = document.getElementById("mode-tabs");
+    const healthText = document.getElementById("health-text");
+
+    let selectedFile = null;
+    let currentMode = "image"; // "image" | "video"
+
+    modeTabs.addEventListener("click", (e) => {
+      const btn = e.target.closest(".tab");
+      if (!btn) return;
+      const mode = btn.dataset.mode;
+      if (!mode || mode === currentMode) return;
+
+      currentMode = mode;
+      for (const tab of modeTabs.querySelectorAll(".tab")) {
+        tab.classList.toggle("active", tab.dataset.mode === currentMode);
+      }
+      selectedFile = null;
+      fileInput.value = "";
+      updateUploadText();
+      setStatus("Idle. Select a file to get started.");
+      clearPreview();
+      clearResults();
+    });
+
+    function updateUploadText() {
+      if (currentMode === "image") {
+        uploadSubtitle.textContent =
+          "Supported image formats: JPG, PNG, WEBP. For best results, use clear, front-facing plates.";
+      } else {
+        uploadSubtitle.textContent =
+          "Supported video formats: MP4, AVI, MOV, MKV. Keep clips short for faster processing.";
+      }
+      uploadTitle.textContent = selectedFile
+        ? selectedFile.name
+        : "Click to choose a file";
+    }
+
+    uploadArea.addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      selectedFile = file;
+      updateUploadText();
+      setStatus("Ready. Click “Run detection”.");
+      clearPreview();
+      clearResults();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      selectedFile = null;
+      fileInput.value = "";
+      updateUploadText();
+      setStatus("Idle. Select a file to get started.");
+      clearPreview();
+      clearResults();
+    });
+
+    function setStatus(text, isError = false) {
+      statusText.textContent = text;
+      statusText.classList.toggle("error", isError);
+    }
+
+    function clearPreview() {
+      preview.innerHTML = '<div class="preview-placeholder">Annotated image or video will appear here after detection.</div>';
+    }
+
+    function clearResults() {
+      plateList.innerHTML = "";
+      summaryCount.textContent = "0 plates";
+      rawResponse.textContent = "Awaiting request…";
+    }
+
+    function setLoading(loading) {
+      runBtn.disabled = loading;
+      clearBtn.disabled = loading;
+      runBtn.textContent = loading ? "Processing…" : "Run detection";
+    }
+
+    function showImageFromBase64(b64) {
+      if (!b64) {
+        clearPreview();
+        return;
+      }
+      const img = document.createElement("img");
+      img.src = "data:image/jpeg;base64," + b64;
+      preview.innerHTML = "";
+      preview.appendChild(img);
+
+      const badge = document.createElement("div");
+      badge.className = "preview-badge";
+      badge.innerHTML = '<span class="preview-badge-dot"></span><span>Annotated image</span>';
+      preview.appendChild(badge);
+    }
+
+    function showVideoFromBase64(b64) {
+      if (!b64) {
+        clearPreview();
+        return;
+      }
+      const video = document.createElement("video");
+      video.controls = true;
+      video.src = "data:video/mp4;base64," + b64;
+      preview.innerHTML = "";
+      preview.appendChild(video);
+
+      const badge = document.createElement("div");
+      badge.className = "preview-badge";
+      badge.innerHTML = '<span class="preview-badge-dot"></span><span>Annotated video</span>';
+      preview.appendChild(badge);
+    }
+
+    function renderPlates(plates) {
+      plateList.innerHTML = "";
+      if (!plates || !plates.length) {
+        const p = document.createElement("div");
+        p.style.color = "#9ca3af";
+        p.style.fontSize = "0.8rem";
+        p.textContent = "No plates detected.";
+        plateList.appendChild(p);
+        summaryCount.textContent = "0 plates";
+        return;
+      }
+
+      summaryCount.textContent = `${plates.length} plate${plates.length === 1 ? "" : "s"}`;
+
+      plates.forEach((plate, idx) => {
+        const item = document.createElement("div");
+        item.className = "plate-item";
+
+        const left = document.createElement("div");
+        const text = document.createElement("div");
+        text.className = "plate-text";
+        text.textContent = plate.text || `(plate ${idx + 1})`;
+
+        const meta = document.createElement("div");
+        meta.className = "plate-meta";
+        const conf = typeof plate.confidence === "number"
+          ? (plate.confidence * 100).toFixed(1) + "%"
+          : "—";
+        meta.textContent = `Confidence: ${conf}`;
+
+        left.appendChild(text);
+        left.appendChild(meta);
+
+        const right = document.createElement("div");
+        right.style.fontSize = "0.7rem";
+        right.style.color = "#9ca3af";
+        right.textContent = `#${idx + 1}`;
+
+        item.appendChild(left);
+        item.appendChild(right);
+        plateList.appendChild(item);
+      });
+    }
+
+    async function runDetection() {
+      if (!selectedFile) {
+        setStatus("Please select a file first.", true);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const endpoint =
+        currentMode === "image" ? "/detect/image" : "/detect/video";
+
+      setLoading(true);
+      setStatus("Processing on server…");
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data) {
+          const msg = (data && data.detail) || res.statusText || "Unknown error";
+          setStatus("Error: " + msg, true);
+          rawResponse.textContent = JSON.stringify(data || { error: msg }, null, 2);
+          clearPreview();
+          clearResults();
+          return;
+        }
+
+        rawResponse.textContent = JSON.stringify(data, null, 2);
+
+        if (currentMode === "image") {
+          showImageFromBase64(data.annotated_image);
+          renderPlates(data.plates || []);
+          setStatus(`Done. Detected ${data.total_plates || 0} plate(s).`);
+        } else {
+          showVideoFromBase64(data.annotated_video);
+          const unique = data.plate_texts || [];
+          renderPlates(
+            unique.map((t) => ({ text: t, confidence: 1 }))
+          );
+          setStatus(`Done. Detected ${unique.length || 0} unique plate(s).`);
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus("Error: " + (err && err.message ? err.message : "Request failed."), true);
+        rawResponse.textContent = String(err);
+        clearPreview();
+        clearResults();
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    runBtn.addEventListener("click", () => {
+      runDetection();
+    });
+
+    // Lightweight health check
+    (async () => {
+      try {
+        const res = await fetch("/", { method: "GET" });
+        if (res.ok) {
+          healthText.textContent = "Server status: Ready";
+        } else {
+          healthText.textContent = "Server status: Responding with error";
+        }
+      } catch {
+        healthText.textContent = "Server status: Offline (start run.bat)";
+      }
+    })();
+  </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ANPR — Automatic Number Plate Recognition</title>
+  <meta name="description" content="AI-powered system to detect and read vehicle license plates from images and videos using deep learning." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Background Particles -->
+  <div class="bg-particles" id="bgParticles"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="8" width="36" height="24" rx="4" stroke="url(#grad1)" stroke-width="2.5"/>
+            <rect x="7" y="14" width="26" height="12" rx="2" fill="url(#grad1)" opacity="0.15"/>
+            <text x="20" y="24" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="url(#grad1)">ABC-123</text>
+            <circle cx="8" cy="20" r="2" fill="url(#grad1)"/>
+            <circle cx="32" cy="20" r="2" fill="url(#grad1)"/>
+            <defs>
+              <linearGradient id="grad1" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#00d4ff"/>
+                <stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">ANPR</span>
+          <span class="logo-sub">Auto Number Plate Recognition</span>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="badge-dot"></span>
+        <span>AI Powered</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Hero -->
+    <section class="hero">
+      <h1 class="hero-title">
+        Detect License Plates<br />
+        <span class="gradient-text">Instantly with AI</span>
+      </h1>
+      <p class="hero-sub">
+        Upload an image or video — our deep learning model (YOLOv8 + EasyOCR) detects
+        and reads vehicle license plates for cars, rickshaws, motorcycles &amp; more.
+      </p>
+
+      <!-- Mode Toggle -->
+      <div class="mode-toggle">
+        <button id="btnImage" class="mode-btn active" onclick="setMode('image')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+          Image
+        </button>
+        <button id="btnVideo" class="mode-btn" onclick="setMode('video')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Video
+        </button>
+      </div>
+    </section>
+
+    <!-- Upload Card -->
+    <section class="upload-section">
+      <div class="upload-card" id="uploadCard">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">
+            <svg id="dropIconImage" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="12" width="56" height="40" rx="6" stroke="url(#dg)" stroke-width="2.5" stroke-dasharray="6 3"/>
+              <circle cx="22" cy="28" r="5" stroke="url(#dg)" stroke-width="2"/>
+              <polyline points="4,48 20,32 34,44 44,34 60,48" stroke="url(#dg)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs><linearGradient id="dg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
+            </svg>
+            <svg id="dropIconVideo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
+              <rect x="4" y="12" width="56" height="40" rx="6" stroke="url(#dg2)" stroke-width="2.5" stroke-dasharray="6 3"/>
+              <polygon points="26,22 26,42 46,32" fill="url(#dg2)"/>
+              <defs><linearGradient id="dg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
+            </svg>
+          </div>
+          <p class="drop-title" id="dropTitle">Drop your image here</p>
+          <p class="drop-sub" id="dropSub">Supports JPG, PNG, BMP, WebP</p>
+          <button class="btn-upload" id="btnBrowse" onclick="document.getElementById('fileInput').click()">
+            Browse File
+          </button>
+          <input type="file" id="fileInput" style="display:none" accept="image/*" onchange="handleFileSelect(event)" />
+        </div>
+
+        <!-- Preview Area -->
+        <div class="preview-area" id="previewArea" style="display:none">
+          <div class="preview-header">
+            <span id="previewLabel">Preview</span>
+            <button class="btn-clear" onclick="clearPreview()">✕ Clear</button>
+          </div>
+          <div class="preview-media-wrap" id="previewMediaWrap">
+            <img id="previewImage" src="" alt="Preview" style="display:none" />
+            <video id="previewVideo" controls style="display:none"></video>
+          </div>
+          <div class="file-info" id="fileInfo"></div>
+          <button class="btn-detect" id="btnDetect" onclick="runDetection()">
+            <span id="detectBtnText">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              Detect Plates
+            </span>
+            <span id="detectBtnLoader" style="display:none">
+              <span class="spinner"></span> Processing…
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RTSP / CCTV Stream Card -->
+      <div class="rtsp-card">
+        <div class="rtsp-header">
+          <span class="card-tag">Live CCTV / RTSP</span>
+        </div>
+        <p class="rtsp-help">
+          Paste your camera stream URL (for example:
+          <code>rtsp://user:pass@camera-ip:554/stream</code>) and run a short
+          detection on the live feed.
+        </p>
+        <div class="rtsp-input-row">
+          <input
+            id="rtspInput"
+            type="text"
+            placeholder="rtsp://user:pass@camera-ip:554/stream"
+            autocomplete="off"
+          />
+          <button class="btn-rtsp" id="btnRtsp" onclick="runStreamDetection()">
+            <span id="rtspBtnText">Detect from Stream</span>
+            <span id="rtspBtnLoader" style="display:none">
+              <span class="spinner"></span> Connecting…
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="resultsSection" style="display:none">
+      <div class="results-header">
+        <h2 class="results-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/><path d="M21,12v7a2,2,0,0,1-2,2H5a2,2,0,0,1-2-2V5a2,2,0,0,1,2-2h11"/></svg>
+          Detection Results
+        </h2>
+        <div class="results-stats" id="resultsStats"></div>
+      </div>
+
+      <div class="results-grid">
+        <!-- Annotated Output -->
+        <div class="result-card annotated-card">
+          <div class="card-header">
+            <span class="card-tag">Annotated Output</span>
+          </div>
+          <div class="annotated-media-wrap" id="annotatedMediaWrap"></div>
+        </div>
+
+        <!-- Plate Cards -->
+        <div class="result-card plates-card">
+          <div class="card-header">
+            <span class="card-tag">Detected Plates</span>
+          </div>
+          <div class="plates-list" id="platesList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error Banner -->
+    <div class="error-banner" id="errorBanner" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <span id="errorMsg"></span>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Built with <span class="gradient-text">YOLOv8 &amp; EasyOCR</span> · Deep Learning ANPR System</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
