@@ -812,10 +812,6 @@
             </defs>
           </svg>
         </div>
-        <div class="logo-text">
-          <span class="logo-title">ANPR</span>
-          <span class="logo-sub">Auto Number Plate Recognition</span>
-        </div>
       </div>
       <div class="header-badge">
         <span class="badge-dot"></span>
@@ -826,29 +822,20 @@
 
   <!-- Main Content -->
   <main class="main">
-    <!-- Hero -->
-    <section class="hero">
-      <h1 class="hero-title">
-        Detect License Plates<br />
-        <span class="gradient-text">Instantly with AI</span>
-      </h1>
-      <p class="hero-sub">
-        Upload an image or video — our deep learning model (YOLOv8 + EasyOCR) detects
-        and reads vehicle license plates for cars, rickshaws, motorcycles &amp; more.
-      </p>
-
-      <!-- Mode Toggle -->
-      <div class="mode-toggle">
-        <button id="btnImage" class="mode-btn active" onclick="setMode('image')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
-          Image
-        </button>
-        <button id="btnVideo" class="mode-btn" onclick="setMode('video')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-          Video
-        </button>
+        <div class="logo-text">
+          <!-- Title intentionally left minimal -->
+          <span class="logo-title">ANPR</span>
+        </div>
       </div>
-    </section>
+      <div class="header-badge">
+        <!-- Badge text removed as requested -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Hero section content removed as requested -->
 
     <!-- Upload Card -->
     <section class="upload-section">
@@ -861,25 +848,33 @@
               <polyline points="4,48 20,32 34,44 44,34 60,48" stroke="url(#dg)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
               <defs><linearGradient id="dg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
             </svg>
-            <svg id="dropIconVideo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
-              <rect x="4" y="12" width="56" height="40" rx="6" stroke="url(#dg2)" stroke-width="2.5" stroke-dasharray="6 3"/>
-              <polygon points="26,22 26,42 46,32" fill="url(#dg2)"/>
-              <defs><linearGradient id="dg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
-            </svg>
           </div>
           <p class="drop-title" id="dropTitle">Drop your image here</p>
           <p class="drop-sub" id="dropSub">Supports JPG, PNG, BMP, WebP</p>
           <button class="btn-upload" id="btnBrowse" onclick="document.getElementById('fileInput').click()">
             Browse File
           </button>
-          <input type="file" id="fileInput" style="display:none" accept="image/*" onchange="handleFileSelect(event)" />
+          <p class="drop-hint">Click to choose a file</p>
+          <input
+            type="file"
+            id="fileInput"
+            style="display:none"
+            accept="image/*"
+            onchange="handleFileSelect(event)"
+          />
+          <p class="upload-note">
+            Supported image formats: JPG, PNG, WEBP. For best results, use clear, front-facing plates.
+          </p>
+          <p class="upload-status" id="uploadStatus">
+            Live demo (no external ML models) · Runs on your machine · Idle. Select a file to get started.
+          </p>
         </div>
 
         <!-- Preview Area -->
         <div class="preview-area" id="previewArea" style="display:none">
           <div class="preview-header">
             <span id="previewLabel">Preview</span>
-            <button class="btn-clear" onclick="clearPreview()">✕ Clear</button>
+            <button class="btn-clear" onclick="clearPreview()">Clear</button>
           </div>
           <div class="preview-media-wrap" id="previewMediaWrap">
             <img id="previewImage" src="" alt="Preview" style="display:none" />
@@ -889,36 +884,10 @@
           <button class="btn-detect" id="btnDetect" onclick="runDetection()">
             <span id="detectBtnText">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              Detect Plates
+              Run detection
             </span>
             <span id="detectBtnLoader" style="display:none">
               <span class="spinner"></span> Processing…
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <!-- RTSP / CCTV Stream Card -->
-      <div class="rtsp-card">
-        <div class="rtsp-header">
-          <span class="card-tag">Live CCTV / RTSP</span>
-        </div>
-        <p class="rtsp-help">
-          Paste your camera stream URL (for example:
-          <code>rtsp://user:pass@camera-ip:554/stream</code>) and run a short
-          detection on the live feed.
-        </p>
-        <div class="rtsp-input-row">
-          <input
-            id="rtspInput"
-            type="text"
-            placeholder="rtsp://user:pass@camera-ip:554/stream"
-            autocomplete="off"
-          />
-          <button class="btn-rtsp" id="btnRtsp" onclick="runStreamDetection()">
-            <span id="rtspBtnText">Detect from Stream</span>
-            <span id="rtspBtnLoader" style="display:none">
-              <span class="spinner"></span> Connecting…
             </span>
           </button>
         </div>
@@ -963,7 +932,7 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <p>Built with <span class="gradient-text">YOLOv8 &amp; EasyOCR</span> · Deep Learning ANPR System</p>
+    <p>Automatic Number Plate Recognition demo interface</p>
   </footer>
 
   <script src="/static/app.js"></script>
