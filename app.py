@@ -15,7 +15,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -208,67 +208,3 @@ async def detect_video(file: UploadFile = File(...)):
             tmp_path.unlink()
         if out_path.exists():
             out_path.unlink()
-
-
-@app.get("/detect/stream")
-async def detect_stream(url: str = Query(..., description="RTSP or HTTP video stream URL")):
-    """
-    Process a short segment from a live CCTV/IP camera stream.
-
-    Example URL:
-      rtsp://user:pass@camera-ip:554/stream
-
-    Returns unique plate texts and one annotated snapshot frame.
-    """
-    detector = get_detector()
-    ocr = get_ocr()
-
-    cap = cv2.VideoCapture(url)
-    if not cap.isOpened():
-        raise HTTPException(400, detail="Could not open video stream. Check URL/user/password.")
-
-    all_plate_texts: list[str] = []
-    annotated_frame = None
-    frame_idx = 0
-    processed = 0
-    max_stream_frames = min(MAX_VIDEO_FRAMES, 300)
-
-    try:
-        while processed < max_stream_frames:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame_idx += 1
-
-            if frame_idx % VIDEO_SKIP_FRAMES != 0:
-                continue
-
-            plates, _ = detector.detect(frame)
-            crops = [p["crop"] for p in plates]
-            plate_texts = ocr.read_all_plates(crops)
-
-            for txt in plate_texts:
-                if txt and txt not in all_plate_texts:
-                    all_plate_texts.append(txt)
-
-            annotated_frame = detector.draw_annotations(frame, plates, plate_texts)
-            processed += 1
-
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(500, detail=str(e))
-    finally:
-        cap.release()
-
-    if annotated_frame is None:
-        raise HTTPException(400, detail="No frames processed from stream.")
-
-    annotated_b64 = img_to_b64(annotated_frame)
-
-    return JSONResponse({
-        "success": True,
-        "total_unique_plates": len(all_plate_texts),
-        "plate_texts": all_plate_texts,
-        "annotated_frame": annotated_b64,
-        "frames_processed": processed,
-    })
