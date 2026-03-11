@@ -134,8 +134,14 @@ body {
 }
 
 /* ── Upload Card ─────────────────────────────────────────────────── */
-.upload-section { margin-bottom: 40px; }
+.upload-section {
+  margin: 40px auto;
+  display: flex;
+  justify-content: center;
+}
 .upload-card {
+  max-width: 640px;
+  width: 100%;
   background: var(--glass);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -150,7 +156,7 @@ body {
 .drop-zone {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 14px;
-  padding: 60px 40px;
+  padding: 48px 32px;
   cursor: pointer;
   transition: background 0.2s;
 }
